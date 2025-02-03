@@ -51,7 +51,7 @@ def run_model_Ciao(category, signal, num_epochs, patience, batch_size, **kwargs)
     etypes_lists, num_metapaths_list, num_edge_type, use_masks, no_masks = get_metapaths_info(signal)
     
     for _ in range(1):
-        net = MAGLLM_lp(num_metapaths_list, num_edge_type, etypes_lists, in_dims, 64, 64, 8, 128, 'RotatE0', dropout_rate)
+        net = MAGLLM_lp(num_metapaths_list, num_edge_type, etypes_lists, in_dims, 64, 64, 8, 128, dropout_rate)
         net.to(device)
         optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
         

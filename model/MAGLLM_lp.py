@@ -15,7 +15,6 @@ class MAGLLM_lp_layer(nn.Module):
                  out_dim,
                  num_heads,
                  attn_vec_dim,
-                 rnn_type='gru',
                  attn_drop=0.5):
         super(MAGLLM_lp_layer, self).__init__()
         self.in_dim = in_dim
@@ -23,17 +22,7 @@ class MAGLLM_lp_layer(nn.Module):
         self.num_heads = num_heads
 
         # etype-specific parameters
-        r_vec = None
-        if rnn_type == 'TransE0':
-            r_vec = nn.Parameter(torch.empty(size=(num_edge_type // 2, in_dim)))
-        elif rnn_type == 'TransE1':
-            r_vec = nn.Parameter(torch.empty(size=(num_edge_type, in_dim)))
-        elif rnn_type == 'RotatE0':
-            r_vec = nn.Parameter(torch.empty(size=(num_edge_type // 2, in_dim // 2, 2)))
-        elif rnn_type == 'RotatE1':
-            r_vec = nn.Parameter(torch.empty(size=(num_edge_type, in_dim // 2, 2)))
-        if r_vec is not None:
-            nn.init.xavier_normal_(r_vec.data, gain=1.414)
+        r_vec = nn.Parameter(torch.empty(size=(num_edge_type // 2, in_dim // 2, 2)))
 
         # ctr_ntype-specific layers
         self.user_layer = MAGLLM_ctr_ntype_specific(num_metapaths_list[0],
@@ -41,7 +30,6 @@ class MAGLLM_lp_layer(nn.Module):
                                                    in_dim,
                                                    num_heads,
                                                    attn_vec_dim,
-                                                   rnn_type,
                                                    r_vec,
                                                    attn_drop,
                                                    use_minibatch=True)
@@ -50,7 +38,6 @@ class MAGLLM_lp_layer(nn.Module):
                                                    in_dim,
                                                    num_heads,
                                                    attn_vec_dim,
-                                                   rnn_type,
                                                    r_vec,
                                                    attn_drop,
                                                    use_minibatch=True)
@@ -86,7 +73,6 @@ class MAGLLM_lp(nn.Module):
                  out_dim,
                  num_heads,
                  attn_vec_dim,
-                 rnn_type='gru',
                  dropout_rate=0.5):
         super(MAGLLM_lp, self).__init__()
         self.hidden_dim = hidden_dim
@@ -110,7 +96,6 @@ class MAGLLM_lp(nn.Module):
                                      out_dim,
                                      num_heads,
                                      attn_vec_dim,
-                                     rnn_type,
                                      attn_drop=dropout_rate)
 
     def forward(self, inputs):

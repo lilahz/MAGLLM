@@ -10,7 +10,6 @@ class MAGLLM_metapath_specific(nn.Module):
                  etypes,
                  out_dim,
                  num_heads,
-                 rnn_type='gru',
                  r_vec=None,
                  attn_drop=0.5,
                  alpha=0.01,
@@ -19,28 +18,10 @@ class MAGLLM_metapath_specific(nn.Module):
         super(MAGLLM_metapath_specific, self).__init__()
         self.out_dim = out_dim
         self.num_heads = num_heads
-        self.rnn_type = rnn_type
         self.etypes = etypes
         self.r_vec = r_vec
         self.use_minibatch = use_minibatch
         self.attn_switch = attn_switch
-
-        # rnn-like metapath instance aggregator
-        # consider multiple attention heads
-        if rnn_type == 'gru':
-            self.rnn = nn.GRU(out_dim, num_heads * out_dim)
-        elif rnn_type == 'lstm':
-            self.rnn = nn.LSTM(out_dim, num_heads * out_dim)
-        elif rnn_type == 'bi-gru':
-            self.rnn = nn.GRU(out_dim, num_heads * out_dim // 2, bidirectional=True)
-        elif rnn_type == 'bi-lstm':
-            self.rnn = nn.LSTM(out_dim, num_heads * out_dim // 2, bidirectional=True)
-        elif rnn_type == 'linear':
-            self.rnn = nn.Linear(out_dim, num_heads * out_dim)
-        elif rnn_type == 'max-pooling':
-            self.rnn = nn.Linear(out_dim, num_heads * out_dim)
-        elif rnn_type == 'neighbor-linear':
-            self.rnn = nn.Linear(out_dim, num_heads * out_dim)
 
         # node-level attention
         # attention considers the center node embedding or not
@@ -86,82 +67,34 @@ class MAGLLM_metapath_specific(nn.Module):
         edata = F.embedding(edge_metapath_indices, features)
 
         # apply rnn to metapath-based feature sequence
-        if self.rnn_type == 'gru':
-            _, hidden = self.rnn(edata.permute(1, 0, 2))
-        elif self.rnn_type == 'lstm':
-            _, (hidden, _) = self.rnn(edata.permute(1, 0, 2))
-        elif self.rnn_type == 'bi-gru':
-            _, hidden = self.rnn(edata.permute(1, 0, 2))
-            hidden = hidden.permute(1, 0, 2).reshape(-1, self.out_dim, self.num_heads).permute(0, 2, 1).reshape(
-                -1, self.num_heads * self.out_dim).unsqueeze(dim=0)
-        elif self.rnn_type == 'bi-lstm':
-            _, (hidden, _) = self.rnn(edata.permute(1, 0, 2))
-            hidden = hidden.permute(1, 0, 2).reshape(-1, self.out_dim, self.num_heads).permute(0, 2, 1).reshape(
-                -1, self.num_heads * self.out_dim).unsqueeze(dim=0)
-        elif self.rnn_type == 'average':
-            hidden = torch.mean(edata, dim=1)
-            hidden = torch.cat([hidden] * self.num_heads, dim=1)
-            hidden = hidden.unsqueeze(dim=0)
-        elif self.rnn_type == 'linear':
-            hidden = self.rnn(torch.mean(edata, dim=1))
-            hidden = hidden.unsqueeze(dim=0)
-        elif self.rnn_type == 'max-pooling':
-            hidden, _ = torch.max(self.rnn(edata), dim=1)
-            hidden = hidden.unsqueeze(dim=0)
-        elif self.rnn_type == 'TransE0' or self.rnn_type == 'TransE1':
-            r_vec = self.r_vec
-            if self.rnn_type == 'TransE0':
-                r_vec = torch.stack((r_vec, -r_vec), dim=1)
-                r_vec = r_vec.reshape(self.r_vec.shape[0] * 2, self.r_vec.shape[1])  # etypes x out_dim
-            edata = F.normalize(edata, p=2, dim=2)
-            for i in range(edata.shape[1] - 1):
-                # consider None edge (symmetric relation)
-                temp_etypes = [etype for etype in self.etypes[i:] if etype is not None]
-                edata[:, i] = edata[:, i] + r_vec[temp_etypes].sum(dim=0)
-            hidden = torch.mean(edata, dim=1)
-            hidden = torch.cat([hidden] * self.num_heads, dim=1)
-            hidden = hidden.unsqueeze(dim=0)
-        elif self.rnn_type == 'RotatE0' or self.rnn_type == 'RotatE1':
-            r_vec = F.normalize(self.r_vec, p=2, dim=2)
-            if self.rnn_type == 'RotatE0':
-                r_vec = torch.stack((r_vec, r_vec), dim=1)
-                r_vec[:, 1, :, 1] = -r_vec[:, 1, :, 1]
-                r_vec = r_vec.reshape(self.r_vec.shape[0] * 2, self.r_vec.shape[1], 2)  # etypes x out_dim/2 x 2
-            edata = edata.reshape(edata.shape[0], edata.shape[1], edata.shape[2] // 2, 2)
-            final_r_vec = torch.zeros([edata.shape[1], self.out_dim // 2, 2], device=edata.device)
-            final_r_vec[-1, :, 0] = 1
-            for i in range(final_r_vec.shape[0] - 2, -1, -1):
-                # consider None edge (symmetric relation)
-                if self.etypes[i] is not None:
-                    final_r_vec[i, :, 0] = final_r_vec[i + 1, :, 0].clone() * r_vec[self.etypes[i], :, 0] -\
-                                           final_r_vec[i + 1, :, 1].clone() * r_vec[self.etypes[i], :, 1]
-                    final_r_vec[i, :, 1] = final_r_vec[i + 1, :, 0].clone() * r_vec[self.etypes[i], :, 1] +\
-                                           final_r_vec[i + 1, :, 1].clone() * r_vec[self.etypes[i], :, 0]
-                else:
-                    final_r_vec[i, :, 0] = final_r_vec[i + 1, :, 0].clone()
-                    final_r_vec[i, :, 1] = final_r_vec[i + 1, :, 1].clone()
-            for i in range(edata.shape[1] - 1):
-                temp1 = edata[:, i, :, 0].clone() * final_r_vec[i, :, 0] -\
-                        edata[:, i, :, 1].clone() * final_r_vec[i, :, 1]
-                temp2 = edata[:, i, :, 0].clone() * final_r_vec[i, :, 1] +\
-                        edata[:, i, :, 1].clone() * final_r_vec[i, :, 0]
-                edata[:, i, :, 0] = temp1
-                edata[:, i, :, 1] = temp2
-            # this is relevant only for subset training since not all users/reviews available, making some edges empty
-            if edata.numel():
-                edata = edata.reshape(edata.shape[0], edata.shape[1], -1)
+        r_vec = F.normalize(self.r_vec, p=2, dim=2)
+        r_vec = torch.stack((r_vec, r_vec), dim=1)
+        r_vec[:, 1, :, 1] = -r_vec[:, 1, :, 1]
+        r_vec = r_vec.reshape(self.r_vec.shape[0] * 2, self.r_vec.shape[1], 2)  # etypes x out_dim/2 x 2
+        edata = edata.reshape(edata.shape[0], edata.shape[1], edata.shape[2] // 2, 2)
+        final_r_vec = torch.zeros([edata.shape[1], self.out_dim // 2, 2], device=edata.device)
+        final_r_vec[-1, :, 0] = 1
+        for i in range(final_r_vec.shape[0] - 2, -1, -1):
+            # consider None edge (symmetric relation)
+            if self.etypes[i] is not None:
+                final_r_vec[i, :, 0] = final_r_vec[i + 1, :, 0].clone() * r_vec[self.etypes[i], :, 0] -\
+                                        final_r_vec[i + 1, :, 1].clone() * r_vec[self.etypes[i], :, 1]
+                final_r_vec[i, :, 1] = final_r_vec[i + 1, :, 0].clone() * r_vec[self.etypes[i], :, 1] +\
+                                        final_r_vec[i + 1, :, 1].clone() * r_vec[self.etypes[i], :, 0]
             else:
-                edata = torch.zeros((edata.shape[0], edata.shape[1], edata.shape[2] * edata.shape[3])).to(edata.device)
-            hidden = torch.mean(edata, dim=1)
-            hidden = torch.cat([hidden] * self.num_heads, dim=1)
-            hidden = hidden.unsqueeze(dim=0)
-        elif self.rnn_type == 'neighbor':
-            hidden = edata[:, 0]
-            hidden = torch.cat([hidden] * self.num_heads, dim=1)
-            hidden = hidden.unsqueeze(dim=0)
-        elif self.rnn_type == 'neighbor-linear':
-            hidden = self.rnn(edata[:, 0])
-            hidden = hidden.unsqueeze(dim=0)
+                final_r_vec[i, :, 0] = final_r_vec[i + 1, :, 0].clone()
+                final_r_vec[i, :, 1] = final_r_vec[i + 1, :, 1].clone()
+        for i in range(edata.shape[1] - 1):
+            temp1 = edata[:, i, :, 0].clone() * final_r_vec[i, :, 0] -\
+                    edata[:, i, :, 1].clone() * final_r_vec[i, :, 1]
+            temp2 = edata[:, i, :, 0].clone() * final_r_vec[i, :, 1] +\
+                    edata[:, i, :, 1].clone() * final_r_vec[i, :, 0]
+            edata[:, i, :, 0] = temp1
+            edata[:, i, :, 1] = temp2
+        edata = torch.zeros((edata.shape[0], edata.shape[1], edata.shape[2] * edata.shape[3])).to(edata.device)
+        hidden = torch.mean(edata, dim=1)
+        hidden = torch.cat([hidden] * self.num_heads, dim=1)
+        hidden = hidden.unsqueeze(dim=0)
 
         eft = hidden.permute(1, 0, 2).view(-1, self.num_heads, self.out_dim)  # E x num_heads x out_dim
         if self.attn_switch:
@@ -193,7 +126,6 @@ class MAGLLM_ctr_ntype_specific(nn.Module):
                  out_dim,
                  num_heads,
                  attn_vec_dim,
-                 rnn_type='gru',
                  r_vec=None,
                  attn_drop=0.5,
                  use_minibatch=False):
@@ -208,7 +140,6 @@ class MAGLLM_ctr_ntype_specific(nn.Module):
             self.metapath_layers.append(MAGLLM_metapath_specific(etypes_list[i],
                                                                 out_dim,
                                                                 num_heads,
-                                                                rnn_type,
                                                                 r_vec,
                                                                 attn_drop=attn_drop,
                                                                 use_minibatch=use_minibatch))
