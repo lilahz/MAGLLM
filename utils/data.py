@@ -54,9 +54,9 @@ def load_ciao_data(category, signal, profile_config = ''):
             train_val_test_neg_user_review, num_user, num_review, features
             
 def get_metapaths_info(signal):
-    if signal == 'like':
-        # 0: user liked review, 1: review liked by user, 2: review under product
-        # 3: product contains review, 4: user liked review under product, 5: product contains review liked by user
+    if signal == 'vote':
+        # 0: user voted to review, 1: review voted by user, 2: review under product
+        # 3: product contains review, 4: user voted to review under product, 5: product contains review voted by user
         etypes_lists = [[[0, 1], [0, 2, 3, 1], [4, 5]],
                         [[1, 0], [2, 5, 4, 3], [2, 3]]]
         num_metapaths_list = [len(lst) for lst in etypes_lists]
@@ -75,8 +75,8 @@ def get_metapaths_info(signal):
                     [True, True, False]]
         no_masks = [[False] * mp for mp in num_metapaths_list]
     elif signal == 'both':
-        # 0: user liked review, 1: review liked by user, 2: review under product, 3: product contains review
-        # 4: user liked review under product, 5: product contains review liked by user
+        # 0: user voted to review, 1: review voted by user, 2: review under product, 3: product contains review
+        # 4: user voted to review under product, 5: product contains review voted by user
         # 6: user written review, 7: review written by user
         # 8: user wrote review under product, 9: product contains review written by user
         etypes_lists = [[[0, 1], [0, 2, 3, 1], [4, 5], [6, 2, 3, 7], [8, 9]],

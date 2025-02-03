@@ -1,1 +1,1 @@
-from model.MAGNN_lp import MAGNN_lp
+from model.MAGLLM_lp import MAGLLM_lp

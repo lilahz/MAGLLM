@@ -11,7 +11,7 @@ import numpy as np
 from collections import defaultdict
 
 import constants as c
-from model.MAGNN_lp import MAGNN_lp
+from model.MAGLLM_lp import MAGLLM_lp
 from utils.data import load_ciao_data, get_metapaths_info
 from utils.pytorchtools import EarlyStopping
 from utils.tools import index_generator, parse_minibatch_Ciao
@@ -51,7 +51,7 @@ def run_model_Ciao(category, signal, num_epochs, patience, batch_size, **kwargs)
     etypes_lists, num_metapaths_list, num_edge_type, use_masks, no_masks = get_metapaths_info(signal)
     
     for _ in range(1):
-        net = MAGNN_lp(num_metapaths_list, num_edge_type, etypes_lists, in_dims, 64, 64, 8, 128, 'RotatE0', dropout_rate)
+        net = MAGLLM_lp(num_metapaths_list, num_edge_type, etypes_lists, in_dims, 64, 64, 8, 128, 'RotatE0', dropout_rate)
         net.to(device)
         optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
         
@@ -223,8 +223,8 @@ def run_model_Ciao(category, signal, num_epochs, patience, batch_size, **kwargs)
                 np.save(f, y_proba_test)
 
 if __name__ == '__main__':
-    print('Starting MAGNN testing for Ciao...')
-    ap = argparse.ArgumentParser(description='MAGNN testing for the recommendation dataset')
+    print('Starting MAGLLM training for Ciao...')
+    ap = argparse.ArgumentParser(description='MAGLLM training for the recommendation dataset')
     ap.add_argument('--category', default='Beauty', help='Name of Ciao category. Default is Beauty.')
     ap.add_argument('--signal', default='vote', help='The interaction between the user and the review. Default is vote')
     ap.add_argument('--epoch', type=int, default=10, help='Number of epochs. Default is 100.')

@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from model.base_MAGNN import MAGNN_ctr_ntype_specific
+from model.base_MAGLLM import MAGLLM_ctr_ntype_specific
 
 
 # for link prediction task
-class MAGNN_lp_layer(nn.Module):
+class MAGLLM_lp_layer(nn.Module):
     def __init__(self,
                  num_metapaths_list,
                  num_edge_type,
@@ -17,7 +17,7 @@ class MAGNN_lp_layer(nn.Module):
                  attn_vec_dim,
                  rnn_type='gru',
                  attn_drop=0.5):
-        super(MAGNN_lp_layer, self).__init__()
+        super(MAGLLM_lp_layer, self).__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.num_heads = num_heads
@@ -36,7 +36,7 @@ class MAGNN_lp_layer(nn.Module):
             nn.init.xavier_normal_(r_vec.data, gain=1.414)
 
         # ctr_ntype-specific layers
-        self.user_layer = MAGNN_ctr_ntype_specific(num_metapaths_list[0],
+        self.user_layer = MAGLLM_ctr_ntype_specific(num_metapaths_list[0],
                                                    etypes_lists[0],
                                                    in_dim,
                                                    num_heads,
@@ -45,7 +45,7 @@ class MAGNN_lp_layer(nn.Module):
                                                    r_vec,
                                                    attn_drop,
                                                    use_minibatch=True)
-        self.review_layer = MAGNN_ctr_ntype_specific(num_metapaths_list[1],
+        self.review_layer = MAGLLM_ctr_ntype_specific(num_metapaths_list[1],
                                                    etypes_lists[1],
                                                    in_dim,
                                                    num_heads,
@@ -76,7 +76,7 @@ class MAGNN_lp_layer(nn.Module):
         return [logits_user, logits_review], [h_user, h_review]
 
 
-class MAGNN_lp(nn.Module):
+class MAGLLM_lp(nn.Module):
     def __init__(self,
                  num_metapaths_list,
                  num_edge_type,
@@ -88,7 +88,7 @@ class MAGNN_lp(nn.Module):
                  attn_vec_dim,
                  rnn_type='gru',
                  dropout_rate=0.5):
-        super(MAGNN_lp, self).__init__()
+        super(MAGLLM_lp, self).__init__()
         self.hidden_dim = hidden_dim
 
         # ntype-specific transformation
@@ -102,8 +102,8 @@ class MAGNN_lp(nn.Module):
         for fc in self.fc_list:
             nn.init.xavier_normal_(fc.weight, gain=1.414)
 
-        # MAGNN_lp layers
-        self.layer1 = MAGNN_lp_layer(num_metapaths_list,
+        # MAGLLM_lp layers
+        self.layer1 = MAGLLM_lp_layer(num_metapaths_list,
                                      num_edge_type,
                                      etypes_lists,
                                      hidden_dim,

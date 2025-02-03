@@ -5,7 +5,7 @@ import dgl.function as fn
 from dgl.nn.pytorch import edge_softmax
 
 
-class MAGNN_metapath_specific(nn.Module):
+class MAGLLM_metapath_specific(nn.Module):
     def __init__(self,
                  etypes,
                  out_dim,
@@ -16,7 +16,7 @@ class MAGNN_metapath_specific(nn.Module):
                  alpha=0.01,
                  use_minibatch=False,
                  attn_switch=False):
-        super(MAGNN_metapath_specific, self).__init__()
+        super(MAGLLM_metapath_specific, self).__init__()
         self.out_dim = out_dim
         self.num_heads = num_heads
         self.rnn_type = rnn_type
@@ -186,7 +186,7 @@ class MAGNN_metapath_specific(nn.Module):
             return ret
 
 
-class MAGNN_ctr_ntype_specific(nn.Module):
+class MAGLLM_ctr_ntype_specific(nn.Module):
     def __init__(self,
                  num_metapaths,
                  etypes_list,
@@ -197,7 +197,7 @@ class MAGNN_ctr_ntype_specific(nn.Module):
                  r_vec=None,
                  attn_drop=0.5,
                  use_minibatch=False):
-        super(MAGNN_ctr_ntype_specific, self).__init__()
+        super(MAGLLM_ctr_ntype_specific, self).__init__()
         self.out_dim = out_dim
         self.num_heads = num_heads
         self.use_minibatch = use_minibatch
@@ -205,7 +205,7 @@ class MAGNN_ctr_ntype_specific(nn.Module):
         # metapath-specific layers
         self.metapath_layers = nn.ModuleList()
         for i in range(num_metapaths):
-            self.metapath_layers.append(MAGNN_metapath_specific(etypes_list[i],
+            self.metapath_layers.append(MAGLLM_metapath_specific(etypes_list[i],
                                                                 out_dim,
                                                                 num_heads,
                                                                 rnn_type,

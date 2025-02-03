@@ -34,7 +34,7 @@ def load_data(category, review_len):
             written_reviews[user_id] = []
         written_reviews[user_id].append((row['review_id'], row['category'], row['product']))
 
-    liked_reviews = {}
+    voted_reviews = {}
     positive_vote = [3, 4, 5]
 
     for _, row in tqdm(votes.iterrows(), total=len(votes)):
@@ -42,45 +42,45 @@ def load_data(category, review_len):
         split = row['split']
         
         if row['vote'] in positive_vote:
-            if voter_id not in liked_reviews:
-                liked_reviews[voter_id] = {}
-            if split not in liked_reviews[voter_id]:
-                liked_reviews[voter_id][split] = []
-            liked_reviews[voter_id][split].append((row['review_id'], row['vote'], row['category'], row['product']))
+            if voter_id not in voted_reviews:
+                voted_reviews[voter_id] = {}
+            if split not in voted_reviews[voter_id]:
+                voted_reviews[voter_id][split] = []
+            voted_reviews[voter_id][split].append((row['review_id'], row['vote'], row['category'], row['product']))
             
     reviews['review_concat'] = reviews['clean_review'].apply(lambda t: cut_review(t, review_len))
     review_id_text_mapping = dict(zip(reviews.review_id, reviews.review_concat))
             
-    return users, written_reviews, liked_reviews, review_id_text_mapping
+    return users, written_reviews, voted_reviews, review_id_text_mapping
 
-def load_history(voter_id, rid2index, history_size, his_order, written_review, liked_reviews, history_type, category):
+def load_history(voter_id, rid2index, history_size, his_order, written_review, voted_reviews, history_type, category):
     history_write = [(i[1], i[2], rid2index[i[0]]) for i in written_review[voter_id]]
     
-    if 'train' in liked_reviews.get(voter_id, []):
-        liked_reviews_user = liked_reviews[voter_id]['train']
+    if 'train' in voted_reviews.get(voter_id, []):
+        voted_reviews_user = voted_reviews[voter_id]['train']
     else:
-        liked_reviews_user = []
+        voted_reviews_user = []
         
-    history_like = [(i[2], i[3], rid2index[i[0]]) for i in liked_reviews_user if i[1] != category]
+    history_vote = [(i[2], i[3], rid2index[i[0]]) for i in voted_reviews_user if i[1] != category]
 
     if history_type == 'write':
         history = random.sample(history_write, min(history_size, len(history_write)))
     elif history_type == 'vote':
         if his_order == 'random':
-            history = random.sample(history_like, min(history_size, len(history_like)))
+            history = random.sample(history_vote, min(history_size, len(history_vote)))
         elif his_order == 'rel_first':
-            liked_reviews_user = sorted(liked_reviews_user, key=lambda x:x[1], reverse=True)
-            history_like = [(i[2], i[3], rid2index[i[0]]) for i in liked_reviews_user if i[1] != category]
+            voted_reviews_user = sorted(voted_reviews_user, key=lambda x:x[1], reverse=True)
+            history_vote = [(i[2], i[3], rid2index[i[0]]) for i in voted_reviews_user if i[1] != category]
             
-            history = history_like[:history_size]
+            history = history_vote[:history_size]
         elif his_order == 'rel_last':
-            liked_reviews_user = sorted(liked_reviews_user, key=lambda x:x[1])
-            history_like = [(i[2], i[3], rid2index[i[0]]) for i in liked_reviews_user if i[1] != category]
+            voted_reviews_user = sorted(voted_reviews_user, key=lambda x:x[1])
+            history_vote = [(i[2], i[3], rid2index[i[0]]) for i in voted_reviews_user if i[1] != category]
             
-            history = history_like[:history_size]
+            history = history_vote[:history_size]
     else:  # 'both'
         history = (list(random.sample(history_write, min(history_size//2, len(history_write))) +
-                   list(random.sample(history_like, min(history_size//2, len(history_like))))))
+                   list(random.sample(history_vote, min(history_size//2, len(history_vote))))))
 
     return history
 
@@ -145,7 +145,7 @@ def build_profile(llm, signal, history, shot='zero', reasoning=None):
     
 def build_user_profiles(
     llm, category, signal, history_size, his_order, shot, reason, users,
-    written_history, liked_history, review_id_text_mapping, output_path
+    written_history, voted_history, review_id_text_mapping, output_path
 ):
     profiles = []
     
@@ -158,7 +158,7 @@ def build_user_profiles(
     
     for idx, user in tqdm(enumerate(users)):
         history_info = load_history(user, review_id_text_mapping, history_size, his_order, written_history, 
-                                    liked_history, signal, category)
+                                    voted_history, signal, category)
         history = [f'<{h[0]}, {h[1]}>: <{h[2].strip()}>' for h in history_info]
         history = '\n'.join(history)
         
@@ -198,10 +198,10 @@ def run(category, signal, history_size, review_len, his_order, shot, reason, out
         n_batch=512
     )
     
-    users, written_reviews, liked_reviews, review_id_text_mapping = load_data(review_len)
+    users, written_reviews, voted_reviews, review_id_text_mapping = load_data(review_len)
     return build_user_profiles(
         llm, category, signal, history_size, his_order, shot, reason, users, 
-        written_reviews, liked_reviews, review_id_text_mapping, output_path
+        written_reviews, voted_reviews, review_id_text_mapping, output_path
     )
     
     

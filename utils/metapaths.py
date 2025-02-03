@@ -225,7 +225,7 @@ def create_r_p_a_p_r(
     return r_p_u_p_r
 
 def get_metapaths(signal, output_path):
-    if signal == 'like':
+    if signal == 'vote':
         expected_metapaths = [
             [(0, 1, 0), (0, 1, 2, 1, 0), (0, 2, 0)],
             [(1, 0, 1), (1, 2, 1), (1, 2, 0, 2, 1)]

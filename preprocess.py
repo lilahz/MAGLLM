@@ -286,7 +286,7 @@ def build_features(profiles, reviews):
 
 if __name__ == '__main__':
     print('Starting Ciao preprocess for MAGLLM training')
-    ap = argparse.ArgumentParser(description='MAGNN testing for the recommendation dataset')
+    ap = argparse.ArgumentParser(description='MAGLLM testing for the recommendation dataset')
     ap.add_argument('--category', default='Beauty', help='Name of Ciao category. Default is Beauty.')
     ap.add_argument('--signal', default='vote', help='The interaction between the user and the review. Default is vote')
     ap.add_argument('--llm_his_size', type=int, default=10, help='Size of history used to build LLM-based profiles')
