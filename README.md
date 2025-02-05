@@ -17,15 +17,20 @@ Install dependencies:
 
 ## Running Experiments
 To train MAGLLM, run:
-`python main.py --dataset ciao --model magllm --signal vote`
+`python main.py --category 'Beauty' --signal 'vote'`
+In case of first run, need to pre-process the data, therefore `--preprocess True` needs to be added.
+Other wise the preprocess can be run separetly:
+`python preprocess.py --category 'Beauty' --signal 'vote'`
 
 Other options:
+--category: DVDs, Beauty, Food & Drink, Internet, Games
 --signal: vote, write, both
 
 ## Dataset
 We use the Ciao dataset. The data include two files:
 1. ciao_reviews.tsv - all the reviews in the dataset after preprocessing
 2. votes_4core.tsv - the review votes of users after the 4-core filtering, including the split to train, validation and test
+Data can be downloaded from: https://drive.google.com/drive/u/1/folders/1hGNzK0abv45O-dOF29NzXYkMhEUfYqc5 
 
 ## Citation
 If you use this code, please cite our paper:

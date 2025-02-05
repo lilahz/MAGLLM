@@ -248,7 +248,7 @@ def build_interactions(signal, votes, reviews):
     
     build_adj_matrix_and_metapaths(signal, user_review, author_review, review_product, user_product, author_product)
     
-def build_features(profiles, reviews):
+def build_features(profiles, reviews, profile_config):
     with open(os.path.join(COMMON['output_path'], 'mappings.pickle'), 'rb') as f:
         mappings = pickle.load(f)
         
@@ -283,6 +283,34 @@ def build_features(profiles, reviews):
          user_features=user_features,
          review_features=review_features,
          product_features=product_features)
+    
+def run_preprocess(**args):
+    output_path = os.path.join(c.DATA_PATH, f'Ciao{args["category"].replace(" & ", "_")}_{args["signal"]}')
+    COMMON['output_path'] = output_path
+    os.makedirs(output_path, exist_ok=True)
+
+    votes, reviews = read_data_files(args['category'])
+    
+    id_mapping = map_entities(votes, reviews)
+    
+    votes['voter_idx'] = votes['voter_id'].map(id_mapping['users'])
+    votes['review_idx'] = votes['review_id'].map(id_mapping['reviews'])
+    votes['product_idx'] = votes['product_id'].map(id_mapping['products'])
+    reviews['user_idx'] = reviews['user_id'].map(id_mapping['users'])
+    reviews['review_idx'] = reviews['review_id'].map(id_mapping['reviews'])
+    reviews['product_idx'] = reviews['product_id'].map(id_mapping['products'])
+    
+    # build nodes interactions based on signal
+    build_interactions(args['signal'], votes, reviews)
+    
+    # features
+    profile_config = f"his_size_{args['llm_his_size']}_rev_len_{args['llm_rev_len']}_order_{args['llm_his_order']}_{args['llm_shot']}"
+    if args['llm_reason']:
+        profile_config = f'{profile_config}_reason_{args["llm_reason"]}'
+    profiles = pd.read_csv(
+        os.path.join(c.PROFILES_PATH, f'ciao_{args["category"].replace(" & ", "_")}', profile_config, f'{args["signal"]}_train_profiles.csv')
+    )
+    build_features(profiles, reviews, profile_config)
 
 if __name__ == '__main__':
     print('Starting Ciao preprocess for MAGLLM training')
@@ -296,30 +324,5 @@ if __name__ == '__main__':
     ap.add_argument('--llm_reason', default=None, help='Whether use a reasoning in prompt')
     
     args = ap.parse_args()
-    
-    output_path = os.path.join(c.DATA_PATH, f'Ciao{args.category.replace(" & ", "_")}_{args.signal}')
-    COMMON['output_path'] = output_path
-    os.makedirs(output_path, exist_ok=True)
-
-    votes, reviews = read_data_files(args.category)
-    
-    id_mapping = map_entities(votes, reviews)
-    
-    votes['voter_idx'] = votes['voter_id'].map(id_mapping['users'])
-    votes['review_idx'] = votes['review_id'].map(id_mapping['reviews'])
-    votes['product_idx'] = votes['product_id'].map(id_mapping['products'])
-    reviews['user_idx'] = reviews['user_id'].map(id_mapping['users'])
-    reviews['review_idx'] = reviews['review_id'].map(id_mapping['reviews'])
-    reviews['product_idx'] = reviews['product_id'].map(id_mapping['products'])
-    
-    # build nodes interactions based on signal
-    build_interactions(args.signal, votes, reviews)
-    
-    # features
-    profile_config = f'his_size_{args.llm_his_size}_rev_len_{args.llm_rev_len}_order_{args.llm_his_order}_{args.llm_shot}'
-    if args.llm_reason:
-        profile_config = f'{profile_config}_reason_{args.llm_reason}'
-    profiles = pd.read_csv(
-        os.path.join(c.PROFILES_PATH, f'ciao_{args.category.replace(" & ", "_")}', profile_config, f'{args.signal}_train_profiles.csv')
-    )
-    build_features(profiles, reviews)
+    print(f'Running preprocess with arguments: {args}')
+    run_preprocess(**args.__dict__)

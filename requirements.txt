@@ -1,0 +1,11 @@
+torch==2.1.0
+torchdata==0.7.0
+numpy==1.26.1
+wandb==0.19.5
+dgl # ==1.1.0+cu117 -f https://data.dgl.ai/wheels/cu117.html
+scipy==1.10.1
+pandas==2.2.3
+gensim==4.3.3
+tqdm==4.66.5
+nltk==3.8.1
+scikit-learn==1.6.1

@@ -11,6 +11,7 @@ import numpy as np
 from collections import defaultdict
 
 import constants as c
+from preprocess import run_preprocess
 from model.MAGLLM_lp import MAGLLM_lp
 from utils.data import load_ciao_data, get_metapaths_info
 from utils.pytorchtools import EarlyStopping
@@ -231,6 +232,7 @@ if __name__ == '__main__':
     ap.add_argument('--patience', type=int, default=2, help='Patience. Default is 5.')
     ap.add_argument('--batch-size', type=int, default=8, help='Batch size. Default is 8.')
     ap.add_argument('--use-pretrained', type=bool, default=False, help='Use a pre-saved model state. Default is False.')
+    ap.add_argument('--preprocess', type=bool, default=False, help='Need to run preprocess before running train.')
     
     ap.add_argument('--llm_his_size', type=int, default=10, help='Size of history used to build LLM-based profiles')
     ap.add_argument('--llm_rev_len', type=int, default=150, help='Length of review used to build LLM-based profiles')
@@ -238,9 +240,10 @@ if __name__ == '__main__':
     ap.add_argument('--llm_shot', default='zero_shot', help='Type of learning used to build LLM-based profiles')
     ap.add_argument('--llm_reason', default=None, help='Whether use a reasoning in prompt')
     
-    
-    
     args = ap.parse_args()
+    
+    if args.preprocess:
+        run_preprocess(**args.__dict__)
     
     profile_config = f'his_size_{args.llm_his_size}_rev_len_{args.llm_rev_len}_order_{args.llm_his_order}_{args.llm_shot}'
     if args.llm_reason is not None:
