@@ -1,6 +1,6 @@
 # MAGLLM
 ## Overview
-This repository contains the code for **MAGLLM**, our proposed approach for personalized review recommendation as described in the paper **Graph Meets LLM for Review Personalization Based on User Votes** which available [here]([https://openreview.net/forum?id=MHOhNKeJk8](https://dl.acm.org/doi/pdf/10.1145/3696410.3714691)). MAGLLM leverages heterogeneous graphs to model relationships among users, reviews, and products, enriched with LLM to generate user profiles. Unlike traditional approaches that rely on authored reviews, we use **review votes** to enhance personalization.
+This repository contains the code for **MAGLLM**, our proposed approach for personalized review recommendation as described in the paper **Graph Meets LLM for Review Personalization Based on User Votes** which available [here]([https://dl.acm.org/doi/pdf/10.1145/3696410.3714691]). MAGLLM leverages heterogeneous graphs to model relationships among users, reviews, and products, enriched with LLM to generate user profiles. Unlike traditional approaches that rely on authored reviews, we use **review votes** to enhance personalization.
 
 Our experiments demonstrate that the voting signal significantly improves recommendation performance compared to authorship-based approaches across various recommendation models and e-commerce domains.
 
